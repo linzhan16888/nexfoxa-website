@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Shop 越南本土/跨境自动定价工具</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tiktok: {
+                            black: '#121212',
+                            cyan: '#25F4EE',
+                            pink: '#FE2C55',
+                            darkGray: '#1F1F1F',
+                            lightGray: '#F8F8F8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f13;
+            color: #f3f4f6;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f1f2e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b3b4f;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #fe2c55;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Navigation / Header -->
+    <header class="border-b border-gray-800 bg-tiktok-black/90 backdrop-blur-md sticky top-0 z-50 px-4 py-3 lg:px-8">
+        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-tiktok-pink to-tiktok-cyan p-2.5 rounded-xl shadow-lg shadow-tiktok-pink/20">
+                    <i class="fa-brands fa-tiktok text-black text-xl"></i>
+                </div>
+                <div>
+                    <h1 id="navTitle" class="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-gray-100 to-tiktok-cyan bg-clip-text text-transparent" data-i18n="nav_title">
+                        TikTok Shop 越南自动定价系统
+                    </h1>
+                    <p id="navSubtitle" class="text-xs text-gray-400" data-i18n="nav_subtitle">精细化成本利润核算 · 助你爆单越海</p>
+                </div>
+            </div>
+            
+            <!-- Quick Exchange Rate & Language Switcher -->
+            <div class="flex flex-wrap items-center justify-center gap-3 bg-gray-900/60 px-4 py-2 rounded-xl border border-gray-800">
+                <!-- Language Toggle Button Group -->
+                <div class="flex rounded-lg overflow-hidden border border-gray-700 bg-gray-800 p-0.5">
+                    <button onclick="changeLanguage('zh')" id="langBtnZh" class="px-2.5 py-1 text-xs font-semibold rounded transition-all duration-200 bg-tiktok-pink text-white">
+                        🇨🇳 中文
+                    </button>
+                    <button onclick="changeLanguage('vi')" id="langBtnVi" class="px-2.5 py-1 text-xs font-semibold rounded transition-all duration-200 text-gray-400 hover:text-white">
+                        🇻🇳 Tiếng Việt
+                    </button>
+                </div>
+
+                <div class="hidden sm:block h-4 w-[1px] bg-gray-800"></div>
+
+                <div class="flex items-center gap-2">
+                    <span id="exRateLabel" class="text-xs text-gray-400" data-i18n="ex_rate_label">汇率 (1元人民币 ≈)</span>
+                    <input type="number" id="exchangeRate" value="3480" class="w-16 bg-gray-800 text-center text-tiktok-cyan rounded border border-gray-700 px-1 py-0.5 focus:outline-none focus:border-tiktok-pink transition" oninput="calculatePricing()">
+                    <span class="text-xs text-gray-300">VND</span>
+                </div>
+
+                <div class="h-4 w-[1px] bg-gray-800"></div>
+
+                <button onclick="resetToDefaults()" class="text-xs text-gray-400 hover:text-tiktok-pink transition flex items-center gap-1">
+                    <i class="fa-solid fa-rotate"></i> <span data-i18n="reset_btn">重置默认</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+        
+        <!-- Left Panel: Form Input (5 Columns) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            <!-- Form Card -->
+            <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-5 sm:p-6 backdrop-blur-lg shadow-xl">
+                <div class="flex items-center gap-2 mb-5">
+                    <span class="w-2 h-6 bg-tiktok-pink rounded"></span>
+                    <h2 class="text-lg font-bold text-white" data-i18n="form_title">定价核心参数设置</h2>
+                </div>
+
+                <!-- Input group -->
+                <div class="space-y-4">
+                    <!-- Product Cost (VND/CNY) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5 flex justify-between">
+                            <span class="flex items-center gap-1">
+                                <span data-i18n="cost_label">产品成本价 (到仓成本)</span> <span class="text-tiktok-pink">*</span>
+                            </span>
+                            <span class="text-xs text-gray-400" data-i18n="cost_sub">支持双币种自动换算</span>
+                        </label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="relative">
+                                <input type="number" id="costVnd" placeholder="越南盾 VND" data-i18n-ph="cost_vnd_ph" class="w-full bg-gray-800/80 border border-gray-700 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-tiktok-cyan transition" oninput="syncCurrency('vnd')">
+                                <span class="absolute right-3 top-3 text-xs text-gray-400 pointer-events-none">VND</span>
+                            </div>
+                            <div class="relative">
+                                <input type="number" id="costCny" placeholder="人民币 CNY" data-i18n-ph="cost_cny_ph" class="w-full bg-gray-800/80 border border-gray-700 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-tiktok-pink transition" oninput="syncCurrency('cny')">
+                                <span class="absolute right-3 top-3 text-xs text-gray-400 pointer-events-none">CNY</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Net Profit Rate -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1 flex justify-between">
+                            <span data-i18n="profit_rate_label">预想净利率 (%)</span>
+                            <span id="profitVal" class="text-tiktok-cyan font-semibold">10%</span>
+                        </label>
+                        <input type="range" id="netProfitRate" min="0" max="80" value="10" step="1" class="w-full accent-tiktok-cyan cursor-pointer" oninput="updateRangeText('netProfitRate', 'profitVal'); calculatePricing();">
+                        <p class="text-[11px] text-gray-500 mt-1" data-i18n="profit_rate_sub">扣除所有平台费、推广及物流费用后的净到手利润比例</p>
+                    </div>
+
+                    <!-- Affiliate Commission -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1 flex justify-between">
+                            <span data-i18n="aff_rate_label">预测联盟佣金比例 (%)</span>
+                            <span id="affiliateVal" class="text-tiktok-pink font-semibold">15%</span>
+                        </label>
+                        <input type="range" id="affiliateRate" min="0" max="60" value="15" step="1" class="w-full accent-tiktok-pink cursor-pointer" oninput="updateRangeText('affiliateRate', 'affiliateVal'); calculatePricing();">
+                        <p class="text-[11px] text-gray-500 mt-1" data-i18n="aff_rate_sub">达人短视频/直播带货需支付的CPS佣金扣点</p>
+                    </div>
+
+                    <!-- Paid Ads / ROI Toggle -->
+                    <div class="bg-gray-800/40 p-4 rounded-2xl border border-gray-800 mt-2">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold text-white flex items-center gap-1.5">
+                                <i class="fa-solid fa-rectangle-ad text-yellow-500"></i>
+                                <span data-i18n="ads_toggle_label">是否包含付费广告推广 (AD)</span>
+                            </span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="includeAds" class="sr-only peer" checked onchange="toggleAdsInput()">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tiktok-cyan"></div>
+                            </label>
+                        </div>
+                        
+                        <div id="adsContainer" class="space-y-3 mt-3">
+                            <label class="block text-xs font-medium text-gray-400 flex justify-between">
+                                <span data-i18n="ads_roi_label">预计引流/付费大盘 ROI</span>
+                                <span id="roiVal" class="text-yellow-500 font-bold">2.5</span>
+                            </label>
+                            <input type="range" id="roiRate" min="1" max="15" value="2.5" step="0.1" class="w-full accent-yellow-500 cursor-pointer" oninput="updateRangeText('roiRate', 'roiVal'); calculatePricing();">
+                            <p class="text-[11px] text-gray-500" data-i18n="ads_roi_sub">广告费率 = 1 / ROI。例: ROI 2.5 相当于将售价的40%用于投流。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Platform Deductions (Settings Panel) -->
+            <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-5 sm:p-6 backdrop-blur-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-6 bg-tiktok-cyan rounded"></span>
+                        <h2 class="text-lg font-bold text-white" data-i18n="platform_settings_title">平台默认扣费设置</h2>
+                    </div>
+                    <button onclick="resetDeductionConfig()" class="text-xs text-tiktok-cyan hover:underline transition" data-i18n="fee_restore_btn">恢复默认值</button>
+                </div>
+                
+                <p class="text-xs text-gray-400 mb-4" data-i18n="platform_settings_sub">根据当前2026年TikTok Shop越南站最新扣点规则设定，支持手动微调：</p>
+
+                <div class="space-y-3.5">
+                    <!-- Ratio items -->
+                    <div class="grid grid-cols-3 items-center gap-2">
+                        <span class="text-xs text-gray-300 col-span-2" data-i18n="fee_tx_label">1. 平台基础手续费 (Transaction Fee)</span>
+                        <div class="relative">
+                            <input type="number" id="feeTx" value="6.0" step="0.1" class="w-full bg-gray-800 text-right pr-6 pl-1 py-1 rounded border border-gray-700 text-xs text-white" oninput="calculatePricing()">
+                            <span class="absolute right-1.5 top-1 text-xs text-gray-400">%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 items-center gap-2">
+                        <span class="text-xs text-gray-300 col-span-2" data-i18n="fee_cat_label">2. 平台类目佣金 (Commission Fee)</span>
+                        <div class="relative">
+                            <input type="number" id="feeCat" value="17.88" step="0.01" class="w-full bg-gray-800 text-right pr-6 pl-1 py-1 rounded border border-gray-700 text-xs text-white" oninput="calculatePricing()">
+                            <span class="absolute right-1.5 top-1 text-xs text-gray-400">%</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 items-center gap-2">
+                        <span class="text-xs text-gray-300 col-span-2" data-i18n="fee_vxp_label">3. VXP专属活动费 (VXP Campaign)</span>
+                        <div class="relative">
+                            <input type="number" id="feeVxp" value="4.0" step="0.1" class="w-full bg-gray-800 text-right pr-6 pl-1 py-1 rounded border border-gray-700 text-xs text-white" oninput="calculatePricing()">
+                            <span class="absolute right-1.5 top-1 text-xs text-gray-400">%</span>
+                        </div>
+                    </div>
+
+                    <!-- Flat VND items -->
+                    <div class="grid grid-cols-3 items-center gap-2 pt-2 border-t border-gray-800">
+                        <span class="text-xs text-gray-300 col-span-2" data-i18n="fee_proc_label">4. 每单处理费 (Processing)</span>
+                        <div class="relative">
+                            <input type="number" id="feeProc" value="3000" class="w-full bg-gray-800 text-right pr-10 pl-1 py-1 rounded border border-gray-700 text-xs text-white" oninput="calculatePricing()">
+                            <span class="absolute right-1.5 top-1 text-[10px] text-gray-400">VND</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 items-center gap-2">
+                        <span class="text-xs text-gray-300 col-span-2" data-i18n="fee_ship_label">5. 运费计划补贴 (Shipping Plan)</span>
+                        <div class="relative">
+                            <input type="number" id="feeShip" value="1620" class="w-full bg-gray-800 text-right pr-10 pl-1 py-1 rounded border border-gray-700 text-xs text-white" oninput="calculatePricing()">
+                            <span class="absolute right-1.5 top-1 text-[10px] text-gray-400">VND</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 items-center gap-2">
+                        <span class="text-xs text-gray-300 col-span-2" data-i18n="fee_wh_label">6. 头程云仓仓储发货费用</span>
+                        <div class="relative">
+                            <input type="number" id="feeWarehouse" value="9000" class="w-full bg-gray-800 text-right pr-10 pl-1 py-1 rounded border border-gray-700 text-xs text-white" oninput="calculatePricing()">
+                            <span class="absolute right-1.5 top-1 text-[10px] text-gray-400">VND</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Results & Breakdown & Scenarios (7 Columns) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Result Cards Showcase -->
+            <div class="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
+                <!-- Background ambient decorative lights -->
+                <div class="absolute -top-12 -right-12 w-48 h-48 bg-tiktok-cyan/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-12 -left-12 w-48 h-48 bg-tiktok-pink/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-800 pb-4 mb-6">
+                    <div>
+                        <span class="text-xs uppercase font-extrabold tracking-widest text-tiktok-cyan">RECOMMENDED PRICE</span>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-1" data-i18n="rec_price_title">智能核算建议售价</h2>
+                    </div>
+                    <div class="mt-2 sm:mt-0 bg-tiktok-pink/10 px-3 py-1 rounded-full border border-tiktok-pink/20">
+                        <span class="text-xs text-tiktok-pink font-semibold">VND / CNY</span>
+                    </div>
+                </div>
+
+                <!-- Main Selling Price Output -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center mb-6">
+                    <!-- Recommended Price VND -->
+                    <div class="bg-gray-800/30 border border-gray-800 rounded-2xl p-5 text-center transition hover:border-tiktok-cyan/40">
+                        <p class="text-xs text-gray-400 mb-1" data-i18n="rec_price_sub">建议售价 (越南盾)</p>
+                        <h3 id="finalPriceVndDisplay" class="text-2xl sm:text-3xl font-black text-tiktok-cyan tracking-wide">0 <span class="text-base font-normal">₫</span></h3>
+                        <p class="text-[10px] text-gray-500 mt-2" data-i18n="rec_price_desc">扣点前终端一口销售价</p>
+                    </div>
+
+                    <!-- Recommended Price CNY -->
+                    <div class="bg-gray-800/30 border border-gray-800 rounded-2xl p-5 text-center transition hover:border-tiktok-pink/40">
+                        <p class="text-xs text-gray-400 mb-1" data-i18n="rec_price_cny">折合人民币价 (CNY)</p>
+                        <h3 id="finalPriceCnyDisplay" class="text-2xl sm:text-3xl font-black text-tiktok-pink tracking-wide">0 <span class="text-base font-normal">¥</span></h3>
+                        <p class="text-[10px] text-gray-500 mt-2" data-i18n="rec_price_cny_desc">当前汇率折合售价</p>
+                    </div>
+                </div>
+
+                <!-- Error Warning Box if Denominator is Negative -->
+                <div id="pricingErrorAlert" class="hidden bg-red-900/40 border border-red-800 text-red-200 text-xs p-4 rounded-xl mb-6 flex items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-base text-red-400 mt-0.5"></i>
+                    <div>
+                        <p class="font-bold" data-i18n="err_alert_title">参数比例过高导致定价失效！</p>
+                        <p class="mt-1 text-gray-300 leading-relaxed" data-i18n="err_alert_desc">预想净利率、联盟佣金、推广费（1/ROI）以及平台扣点总额已达到或超过 100%。在这种情况下，商家定价永远无法覆盖成本。请适当下调您的期望参数或提升 ROI。</p>
+                    </div>
+                </div>
+
+                <!-- Summary statistics table below main price -->
+                <div class="grid grid-cols-3 gap-2 text-center border-t border-gray-800/60 pt-6">
+                    <div>
+                        <p class="text-xs text-gray-400 mb-1" data-i18n="stat_net_profit">预估净利润</p>
+                        <p id="profitAmountDisplay" class="text-sm font-bold text-green-400">0 ₫</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 mb-1" data-i18n="stat_ad_spend">预估投流费</p>
+                        <p id="adSpendDisplay" class="text-sm font-bold text-yellow-500">0 ₫</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 mb-1" data-i18n="stat_platform_cost">平台税费固定支出</p>
+                        <p id="platformCostDisplay" class="text-sm font-bold text-indigo-400">0 ₫</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Breakdowns and Chart -->
+            <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-5 sm:p-6 backdrop-blur-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-md font-bold text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-pie text-tiktok-cyan"></i>
+                        <span data-i18n="chart_title">销售价格构成图谱与详情</span>
+                    </h3>
+                    <span class="text-xs text-gray-400" data-i18n="chart_sub">比例分配可视化</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                    <!-- Chart container (5 cols) -->
+                    <div class="md:col-span-5 flex justify-center">
+                        <div class="w-full max-w-[180px] aspect-square relative">
+                            <canvas id="breakdownChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown table details (7 cols) -->
+                    <div class="md:col-span-7 text-xs space-y-2.5 text-gray-300">
+                        <div class="flex justify-between items-center py-1 border-b border-gray-800">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#10b981]"></span>
+                                <span data-i18n="chart_lbl_cost">商品货盘成本</span>
+                            </span>
+                            <span id="breakdownCost" class="font-semibold text-white">0 ₫ (0%)</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1 border-b border-gray-800">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#3b82f6]"></span>
+                                <span data-i18n="chart_lbl_profit">预想净利润率</span>
+                            </span>
+                            <span id="breakdownProfit" class="font-semibold text-white">0 ₫ (0%)</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1 border-b border-gray-800">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#f59e0b]"></span>
+                                <span data-i18n="chart_lbl_ads">广告推广费 (ROI)</span>
+                            </span>
+                            <span id="breakdownAds" class="font-semibold text-white">0 ₫ (0%)</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1 border-b border-gray-800">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#f43f5e]"></span>
+                                <span data-i18n="chart_lbl_affiliate">联盟达人佣金</span>
+                            </span>
+                            <span id="breakdownAffiliate" class="font-semibold text-white">0 ₫ (0%)</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1 border-b border-gray-800">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#8b5cf6]"></span>
+                                <span data-i18n="chart_lbl_platvar">平台手续和佣金 (扣除)</span>
+                            </span>
+                            <span id="breakdownPlatform" class="font-semibold text-white">0 ₫ (0%)</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1 border-b border-gray-800">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#64748b]"></span>
+                                <span data-i18n="chart_lbl_fixed">固定杂费补贴</span>
+                            </span>
+                            <span id="breakdownFixed" class="font-semibold text-white">0 ₫ (0%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saved Scenarios Drawer/History -->
+            <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-5 sm:p-6 backdrop-blur-lg">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                    <h3 class="text-md font-bold text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-list text-tiktok-pink"></i>
+                        <span data-i18n="history_title">多商品定价方案对比历史</span>
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="saveCurrentScenario()" class="bg-gradient-to-r from-tiktok-cyan to-blue-500 hover:opacity-90 text-black text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus"></i> <span data-i18n="history_save_btn">保存当前定价</span>
+                        </button>
+                        <button onclick="clearAllScenarios()" class="text-xs text-gray-500 hover:text-red-400 px-2 py-1 transition" data-i18n="history_clear_btn">
+                            清空历史
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scenario List Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-300">
+                        <thead>
+                            <tr class="border-b border-gray-800 text-gray-400">
+                                <th class="py-2.5" data-i18n="th_name">商品方案名称</th>
+                                <th class="py-2.5 text-right" data-i18n="th_cost">商品成本</th>
+                                <th class="py-2.5 text-center" data-i18n="th_roi">ROI / 利润率</th>
+                                <th class="py-2.5 text-right" data-i18n="th_price">建议售价 (VND)</th>
+                                <th class="py-2.5 text-right" data-i18n="th_profit">单件净赚</th>
+                                <th class="py-2.5 text-center" data-i18n="th_action">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scenariosTableBody">
+                            <tr id="emptyScenarioRow">
+                                <td colspan="6" class="py-8 text-center text-gray-500">
+                                    <i class="fa-solid fa-receipt text-3xl mb-2 text-gray-700 block"></i>
+                                    <span data-i18n="empty_history">暂未保存任何定价方案，调整参数后点击上方“保存当前定价”吧！</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer copyright and extra info -->
+    <footer class="bg-black/80 border-t border-gray-900 py-6 px-4 text-center text-xs text-gray-500 mt-12">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p>© 2026 TikTok Shop 越南站选品定价核算版. 版权所有.</p>
+            <div class="flex gap-4">
+                <a href="#" class="hover:underline text-tiktok-cyan">越南电商最新政策</a>
+                <a href="#" class="hover:underline text-tiktok-pink">TikTok 官方大盘分析</a>
+                <a href="#" class="hover:underline text-gray-400">意见与反馈</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Saved Scenario Dialog / Prompt -->
+    <div id="saveDialog" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-gray-900 border border-gray-800 p-6 rounded-3xl max-w-sm w-full mx-4 shadow-2xl">
+            <h3 class="text-md font-bold text-white mb-2" data-i18n="dialog_title">保存定价方案</h3>
+            <p class="text-xs text-gray-400 mb-4" data-i18n="dialog_desc">请输入商品名称或编号以作区分：</p>
+            <input type="text" id="scenarioNameInput" placeholder="例如: 智能降噪蓝牙耳机" data-i18n-ph="dialog_ph" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-tiktok-pink">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeSaveDialog()" class="px-3 py-1.5 text-xs text-gray-400 hover:text-white transition" data-i18n="dialog_cancel">取消</button>
+                <button onclick="confirmSaveScenario()" class="bg-tiktok-pink hover:bg-tiktok-pink/90 text-white font-bold text-xs px-4 py-1.5 rounded-xl transition" data-i18n="dialog_save">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal to avoid browser confirm() -->
+    <div id="confirmDialog" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-gray-900 border border-gray-800 p-6 rounded-3xl max-w-sm w-full mx-4 shadow-2xl">
+            <h3 id="confirmTitle" class="text-md font-bold text-white mb-2">确认操作</h3>
+            <p id="confirmDesc" class="text-xs text-gray-400 mb-6">确定执行此操作吗？</p>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeConfirmDialog(false)" class="px-3 py-1.5 text-xs text-gray-400 hover:text-white transition" id="confirmCancelText">取消</button>
+                <button onclick="closeConfirmDialog(true)" class="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-4 py-1.5 rounded-xl transition" id="confirmConfirmText">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Notification/Toast System -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // Bilingual translation dictionary
+        const TRANSLATIONS = {
+            zh: {
+                nav_title: "TikTok Shop 越南自动定价系统",
+                nav_subtitle: "精细化成本利润核算 · 助你爆单越海",
+                ex_rate_label: "汇率 (1元人民币 ≈)",
+                reset_btn: "重置默认",
+                form_title: "定价核心参数设置",
+                cost_label: "产品成本价 (到仓成本)",
+                cost_sub: "支持双币种自动换算",
+                cost_vnd_ph: "越南盾 VND",
+                cost_cny_ph: "人民币 CNY",
+                profit_rate_label: "预想净利率 (%)",
+                profit_rate_sub: "扣除所有平台费、推广及物流费用后的净到手利润比例",
+                aff_rate_label: "预测联盟佣金比例 (%)",
+                aff_rate_sub: "达人短视频/直播带货需支付的CPS佣金扣点",
+                ads_toggle_label: "是否包含付费广告推广 (AD)",
+                ads_roi_label: "预计引流/付费大盘 ROI",
+                ads_roi_sub: "广告费率 = 1 / ROI。例: ROI 2.5 相当于将售价的40%用于投流。",
+                platform_settings_title: "平台默认扣费设置",
+                platform_settings_sub: "根据当前2026年TikTok Shop越南站最新扣点规则设定，支持手动微调：",
+                fee_tx_label: "1. 平台基础手续费 (Transaction Fee)",
+                fee_cat_label: "2. 平台类目佣金 (Commission Fee)",
+                fee_vxp_label: "3. VXP专属活动费 (VXP Campaign)",
+                fee_proc_label: "4. 每单处理费 (Processing)",
+                fee_ship_label: "5. 运费计划补贴 (Shipping Plan)",
+                fee_wh_label: "6. 头程云仓仓储发货费用",
+                fee_restore_btn: "恢复默认值",
+                rec_price_title: "智能核算建议售价",
+                rec_price_sub: "建议售价 (越南盾)",
+                rec_price_desc: "扣点前终端一口销售价",
+                rec_price_cny: "折合人民币价 (CNY)",
+                rec_price_cny_desc: "当前汇率折合售价",
+                err_alert_title: "参数比例过高导致定价失效！",
+                err_alert_desc: "预想净利率、联盟佣金、推广费（1/ROI）以及平台扣点总额已达到或超过 100%。在这种情况下，商家定价永远无法覆盖成本。请适当下调您的期望参数或提升 ROI。",
+                stat_net_profit: "预估净利润",
+                stat_ad_spend: "预估投流费",
+                stat_platform_cost: "平台税费固定支出",
+                chart_title: "销售价格构成图谱与详情",
+                chart_sub: "比例分配可视化",
+                chart_lbl_cost: "商品货盘成本",
+                chart_lbl_profit: "预想净利润率",
+                chart_lbl_ads: "广告推广费 (ROI)",
+                chart_lbl_affiliate: "联盟达人佣金",
+                chart_lbl_platvar: "平台手续和佣金 (扣除)",
+                chart_lbl_fixed: "固定杂费补贴",
+                history_title: "多商品定价方案对比历史",
+                history_save_btn: "保存当前定价",
+                history_clear_btn: "清空历史",
+                th_name: "商品方案名称",
+                th_cost: "商品成本",
+                th_roi: "ROI / 利润率",
+                th_price: "建议售价 (VND)",
+                th_profit: "单件净赚",
+                th_action: "操作",
+                empty_history: "暂未保存任何定价方案，调整参数后点击上方“保存当前定价”吧！",
+                dialog_title: "保存定价方案",
+                dialog_desc: "请输入商品名称或编号以作区分：",
+                dialog_ph: "例如: 智能降噪蓝牙耳机",
+                dialog_cancel: "取消",
+                dialog_save: "保存",
+                chart_cost: "成本",
+                chart_profit: "利润",
+                chart_ads: "推广",
+                chart_aff: "达人佣金",
+                chart_plat: "平台税佣",
+                chart_fixed: "固定杂费",
+                alert_input_cost: "请输入有效的商品成本再进行保存！",
+                alert_invalid_params: "当前参数配置不合理，请调整后再保存！",
+                alert_cleared: "方案对比历史已清空！",
+                alert_saved: "定价方案已保存！",
+                alert_deleted: "方案已成功删除！",
+                confirm_clear: "您确定要清空所有已保存方案吗？",
+                confirm_title: "操作确认",
+                confirm_yes: "确定",
+                confirm_no: "取消",
+                non_ad_desc: "不包含"
+            },
+            vi: {
+                nav_title: "Định Giá Tự Động TikTok Shop VN",
+                nav_subtitle: "Hạch toán chi phí & lợi nhuận chi tiết · Hỗ trợ bùng nổ đơn hàng",
+                ex_rate_label: "Tỷ giá (1 RMB ≈)",
+                reset_btn: "Đặt lại",
+                form_title: "Tham Số Định Giá Cốt Lõi",
+                cost_label: "Giá vốn sản phẩm (Giá đến kho)",
+                cost_sub: "Hỗ trợ tự động quy đổi song tệ",
+                cost_vnd_ph: "Đồng Việt Nam VND",
+                cost_cny_ph: "Nhân dân tệ CNY",
+                profit_rate_label: "Tỷ lệ LN ròng mong muốn (%)",
+                profit_rate_sub: "Tỷ lệ lợi nhuận ròng nhận được sau khi trừ tất cả chi phí sàn, ads và logistics",
+                aff_rate_label: "Tỷ lệ hoa hồng liên kết dự kiến (%)",
+                aff_rate_sub: "Khấu trừ hoa hồng CPS trả cho KOC/KOL làm video ngắn hoặc livestream",
+                ads_toggle_label: "Có bao gồm quảng cáo trả phí (AD) không",
+                ads_roi_label: "Chỉ số ROI quảng cáo dự kiến",
+                ads_roi_sub: "Chi phí quảng cáo = 1 / ROI. Ví dụ: ROI 2.5 tương đương dùng 40% giá bán để chạy ads.",
+                platform_settings_title: "Cài Đặt Chi Phí Mặc Định Của Sàn",
+                platform_settings_sub: "Được thiết lập theo quy định khấu trừ mới nhất năm 2026 của TikTok Shop VN, hỗ trợ chỉnh sửa:",
+                fee_tx_label: "1. Phí giao dịch cơ bản (Transaction Fee)",
+                fee_cat_label: "2. Phí hoa hồng ngành hàng (Commission Fee)",
+                fee_vxp_label: "3. Phí chương trình độc quyền (VXP Campaign)",
+                fee_proc_label: "4. Phí xử lý mỗi đơn hàng (Processing)",
+                fee_ship_label: "5. Phí hỗ trợ vận chuyển (Shipping Plan)",
+                fee_wh_label: "6. Phí vận chuyển chặng đầu & kho vận",
+                fee_restore_btn: "Khôi phục mặc định",
+                rec_price_title: "Giá Bán Đề Xuất Tự Động",
+                rec_price_sub: "Giá bán đề xuất (VND)",
+                rec_price_desc: "Giá bán lẻ niêm yết cuối cùng trước khấu trừ",
+                rec_price_cny: "Giá quy đổi sang RMB (CNY)",
+                rec_price_cny_desc: "Giá bán quy đổi theo tỷ giá hiện tại",
+                err_alert_title: "Tỷ lệ tham số quá cao khiến định giá không khả thi!",
+                err_alert_desc: "Tổng tỷ lệ lợi nhuận ròng, hoa hồng liên kết, chi phí ads (1/ROI) và các khoản phí sàn đã bằng hoặc vượt quá 100%. Trong trường hợp này, việc định giá không thể bù đắp chi phí. Vui lòng hạ tham số kỳ vọng hoặc tăng ROI.",
+                stat_net_profit: "Lợi nhuận ròng dự kiến",
+                stat_ad_spend: "Chi phí ads dự kiến",
+                stat_platform_cost: "Tổng phí & thuế trả sàn",
+                chart_title: "Cơ Cấu Giá Bán Chi Tiết",
+                chart_sub: "Trực quan hóa phân bổ tỷ lệ %",
+                chart_lbl_cost: "Giá vốn hàng hóa",
+                chart_lbl_profit: "Lợi nhuận ròng mong muốn",
+                chart_lbl_ads: "Phí quảng cáo (ROI)",
+                chart_lbl_affiliate: "Hoa hồng tiếp thị liên kết",
+                chart_lbl_platvar: "Thuế phí khấu trừ của sàn",
+                chart_lbl_fixed: "Phí cố định & phụ phí",
+                history_title: "Lịch Sử Đối Chiếu Phương Án Định Giá",
+                history_save_btn: "Lưu định giá hiện tại",
+                history_clear_btn: "Xóa lịch sử",
+                th_name: "Tên sản phẩm",
+                th_cost: "Giá vốn",
+                th_roi: "ROI / Tỷ suất LN",
+                th_price: "Giá đề xuất (VND)",
+                th_profit: "Lợi nhuận ròng/Sản phẩm",
+                th_action: "Thao tác",
+                empty_history: "Chưa lưu phương án định giá nào, hãy điều chỉnh tham số và bấm nút 'Lưu định giá hiện tại' phía trên!",
+                dialog_title: "Lưu phương án định giá",
+                dialog_desc: "Vui lòng nhập tên hoặc mã sản phẩm để phân biệt:",
+                dialog_ph: "Ví dụ: Tai nghe Bluetooth chống ồn",
+                dialog_cancel: "Hủy",
+                dialog_save: "Lưu",
+                chart_cost: "Giá vốn",
+                chart_profit: "Lợi nhuận",
+                chart_ads: "Ads",
+                chart_aff: "Hoa hồng",
+                chart_plat: "Thuế phí sàn",
+                chart_fixed: "Phí cố định",
+                alert_input_cost: "Vui lòng nhập giá vốn hợp lệ trước khi lưu!",
+                alert_invalid_params: "Tham số hiện tại không khả thi, vui lòng điều chỉnh trước khi lưu!",
+                alert_cleared: "Lịch sử định giá đã được xóa sạch!",
+                alert_saved: "Phương án định giá đã được lưu!",
+                alert_deleted: "Đã xóa phương án thành công!",
+                confirm_clear: "Bạn có chắc chắn muốn xóa toàn bộ lịch sử định giá đã lưu không?",
+                confirm_title: "Xác nhận thao tác",
+                confirm_yes: "Đồng ý",
+                confirm_no: "Hủy bỏ",
+                non_ad_desc: "Không chạy"
+            }
+        };
+
+        const DEFAULT_CONFIG = {
+            exchangeRate: 3480,
+            feeTx: 6.0,
+            feeCat: 17.88,
+            feeVxp: 4.0,
+            feeProc: 3000,
+            feeShip: 1620,
+            feeWarehouse: 9000,
+            netProfitRate: 10,
+            affiliateRate: 15,
+            roiRate: 2.5,
+            includeAds: true
+        };
+
+        let currentLang = 'zh';
+        let myChartInstance = null;
+        let savedScenarios = [];
+        let confirmPromiseResolve = null;
+
+        // Custom Toast System instead of alert()
+        function showToast(message, type = "success") {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-2 px-4 py-3 rounded-xl border shadow-lg text-xs font-semibold translate-y-2 opacity-0 transition-all duration-300 pointer-events-auto max-w-xs ${
+                type === 'error' 
+                ? 'bg-red-950/90 text-red-200 border-red-800' 
+                : 'bg-green-950/90 text-green-200 border-green-800'
+            }`;
+            
+            const icon = type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check';
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+            
+            // Auto dismiss
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Custom Confirm Dialogue System instead of confirm()
+        function showConfirm(titleKey, descKey, onConfirm) {
+            const dialog = document.getElementById('confirmDialog');
+            const titleEl = document.getElementById('confirmTitle');
+            const descEl = document.getElementById('confirmDesc');
+            const btnCancel = document.getElementById('confirmCancelText');
+            const btnConfirm = document.getElementById('confirmConfirmText');
+
+            titleEl.textContent = TRANSLATIONS[currentLang][titleKey] || "Confirm";
+            descEl.textContent = TRANSLATIONS[currentLang][descKey] || "Are you sure?";
+            btnCancel.textContent = TRANSLATIONS[currentLang]['confirm_no'];
+            btnConfirm.textContent = TRANSLATIONS[currentLang]['confirm_yes'];
+
+            dialog.classList.remove('hidden');
+            
+            confirmPromiseResolve = (result) => {
+                dialog.classList.add('hidden');
+                if (result) {
+                    onConfirm();
+                }
+            };
+        }
+
+        function closeConfirmDialog(result) {
+            if (confirmPromiseResolve) {
+                confirmPromiseResolve(result);
+                confirmPromiseResolve = null;
+            }
+        }
+
+        // Function to apply translation dictionary
+        function applyTranslations() {
+            const langData = TRANSLATIONS[currentLang];
+            
+            // 1. Text elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (langData[key]) {
+                    el.textContent = langData[key];
+                }
+            });
+
+            // 2. Placeholders
+            document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+                const key = el.getAttribute('data-i18n-ph');
+                if (langData[key]) {
+                    el.setAttribute('placeholder', langData[key]);
+                }
+            });
+
+            // 3. Update sliders current state texts manually
+            updateRangeText('netProfitRate', 'profitVal');
+            updateRangeText('affiliateRate', 'affiliateVal');
+            updateRangeText('roiRate', 'roiVal');
+
+            // 4. Force calculate & redraw charts with translated labels
+            calculatePricing();
+            renderScenariosTable();
+        }
+
+        // Update active UI switch state and change active language
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const btnZh = document.getElementById('langBtnZh');
+            const btnVi = document.getElementById('langBtnVi');
+
+            if (lang === 'zh') {
+                btnZh.className = "px-2.5 py-1 text-xs font-semibold rounded transition-all duration-200 bg-tiktok-pink text-white";
+                btnVi.className = "px-2.5 py-1 text-xs font-semibold rounded transition-all duration-200 text-gray-400 hover:text-white";
+            } else {
+                btnVi.className = "px-2.5 py-1 text-xs font-semibold rounded transition-all duration-200 bg-tiktok-pink text-white";
+                btnZh.className = "px-2.5 py-1 text-xs font-semibold rounded transition-all duration-200 text-gray-400 hover:text-white";
+            }
+
+            applyTranslations();
+        }
+
+        // Loading scenarios from localStorage if present
+        window.onload = function() {
+            const cachedScenarios = localStorage.getItem('tts_vietnam_scenarios');
+            if (cachedScenarios) {
+                savedScenarios = JSON.parse(cachedScenarios);
+            }
+            
+            // Set initial defaults
+            document.getElementById('costVnd').value = 100000;
+            syncCurrency('vnd'); // auto-fills RMB cost based on active exchange rate
+            
+            toggleAdsInput();
+            applyTranslations(); // Set default language text
+        }
+
+        // Synchronize currency input fields based on active input
+        function syncCurrency(source) {
+            const exRate = parseFloat(document.getElementById('exchangeRate').value) || 3480;
+            const costVndInput = document.getElementById('costVnd');
+            const costCnyInput = document.getElementById('costCny');
+
+            if (source === 'vnd') {
+                const vndVal = parseFloat(costVndInput.value) || 0;
+                costCnyInput.value = (vndVal / exRate).toFixed(2);
+            } else {
+                const cnyVal = parseFloat(costCnyInput.value) || 0;
+                costVndInput.value = Math.round(cnyVal * exRate);
+            }
+            calculatePricing();
+        }
+
+        // Toggle advertisement inputs based on checkbox
+        function toggleAdsInput() {
+            const includeAds = document.getElementById('includeAds').checked;
+            const adsContainer = document.getElementById('adsContainer');
+            if (includeAds) {
+                adsContainer.style.opacity = '1';
+                adsContainer.style.pointerEvents = 'auto';
+            } else {
+                adsContainer.style.opacity = '0.35';
+                adsContainer.style.pointerEvents = 'none';
+            }
+            calculatePricing();
+        }
+
+        // Dynamic Text update for Range Sliders
+        function updateRangeText(inputId, spanId) {
+            const inputVal = document.getElementById(inputId).value;
+            const textSuffix = inputId === 'roiRate' ? '' : '%';
+            document.getElementById(spanId).textContent = inputVal + textSuffix;
+        }
+
+        // Reset inputs and configs to original default
+        function resetToDefaults() {
+            document.getElementById('exchangeRate').value = DEFAULT_CONFIG.exchangeRate;
+            document.getElementById('netProfitRate').value = DEFAULT_CONFIG.netProfitRate;
+            document.getElementById('affiliateRate').value = DEFAULT_CONFIG.affiliateRate;
+            document.getElementById('roiRate').value = DEFAULT_CONFIG.roiRate;
+            document.getElementById('includeAds').checked = DEFAULT_CONFIG.includeAds;
+            
+            updateRangeText('netProfitRate', 'profitVal');
+            updateRangeText('affiliateRate', 'affiliateVal');
+            updateRangeText('roiRate', 'roiVal');
+            
+            resetDeductionConfig();
+            toggleAdsInput();
+        }
+
+        function resetDeductionConfig() {
+            document.getElementById('feeTx').value = DEFAULT_CONFIG.feeTx;
+            document.getElementById('feeCat').value = DEFAULT_CONFIG.feeCat;
+            document.getElementById('feeVxp').value = DEFAULT_CONFIG.feeVxp;
+            document.getElementById('feeProc').value = DEFAULT_CONFIG.feeProc;
+            document.getElementById('feeShip').value = DEFAULT_CONFIG.feeShip;
+            document.getElementById('feeWarehouse').value = DEFAULT_CONFIG.feeWarehouse;
+            calculatePricing();
+        }
+
+        // Helper to format currency values clearly
+        function formatVND(val) {
+            return Math.round(val).toLocaleString('vi-VN') + ' ₫';
+        }
+
+        function formatCNY(val) {
+            return '¥' + parseFloat(val).toFixed(2);
+        }
+
+        function calculatePricing() {
+            // Retrieve product cost
+            const costVnd = parseFloat(document.getElementById('costVnd').value) || 0;
+            const exRate = parseFloat(document.getElementById('exchangeRate').value) || 3480;
+
+            // Retrieve expectations rates
+            const netProfitRate = (parseFloat(document.getElementById('netProfitRate').value) || 0) / 100;
+            const affiliateRate = (parseFloat(document.getElementById('affiliateRate').value) || 0) / 100;
+            const includeAds = document.getElementById('includeAds').checked;
+            const roiRate = parseFloat(document.getElementById('roiRate').value) || 1;
+            
+            // Ad Spend Ratio: Ad spend = Price / ROI. Thus, rate = 1 / ROI.
+            const adSpendRate = includeAds ? (1 / roiRate) : 0;
+
+            // Retrieve Platform Variable Fees (%)
+            const feeTx = (parseFloat(document.getElementById('feeTx').value) || 0) / 100;
+            const feeCat = (parseFloat(document.getElementById('feeCat').value) || 0) / 100;
+            const feeVxp = (parseFloat(document.getElementById('feeVxp').value) || 0) / 100;
+
+            const totalPlatformVarRate = feeTx + feeCat + feeVxp; // Platform commission/handling total
+
+            // Retrieve Platform Fixed Fees (VND)
+            const feeProc = parseFloat(document.getElementById('feeProc').value) || 0;
+            const feeShip = parseFloat(document.getElementById('feeShip').value) || 0;
+            const feeWarehouse = parseFloat(document.getElementById('feeWarehouse').value) || 0;
+
+            const totalFixedFees = feeProc + feeShip + feeWarehouse;
+
+            // D (Denominator) Factor Logic
+            // Price P = (Cost + Fixed Fees) / (1 - NetProfit - AffiliateCommission - AdSpendRate - PlatformVarRate)
+            const denominator = 1 - netProfitRate - affiliateRate - adSpendRate - totalPlatformVarRate;
+
+            const errorAlert = document.getElementById('pricingErrorAlert');
+            let finalPriceVnd = 0;
+            let finalPriceCny = 0;
+
+            if (denominator <= 0) {
+                // Denominator falls to 0 or negative. Unfeasible pricing
+                errorAlert.classList.remove('hidden');
+                
+                // Set default/fallback display values safely
+                document.getElementById('finalPriceVndDisplay').textContent = "ERR";
+                document.getElementById('finalPriceCnyDisplay').textContent = "ERR";
+                document.getElementById('profitAmountDisplay').textContent = "0 ₫";
+                document.getElementById('adSpendDisplay').textContent = "0 ₫";
+                document.getElementById('platformCostDisplay').textContent = "0 ₫";
+                
+                updateBreakdownVisuals(0, 0, 0, 0, 0, 0, 0);
+                return;
+            } else {
+                errorAlert.classList.add('hidden');
+                finalPriceVnd = (costVnd + totalFixedFees) / denominator;
+                finalPriceCny = finalPriceVnd / exRate;
+            }
+
+            // Display standard output
+            document.getElementById('finalPriceVndDisplay').innerHTML = `${formatVND(finalPriceVnd)}`;
+            document.getElementById('finalPriceCnyDisplay').innerHTML = `${formatCNY(finalPriceCny)}`;
+
+            // Calculate direct numerical components for reporting
+            const calculatedProfit = finalPriceVnd * netProfitRate;
+            const calculatedAdSpend = finalPriceVnd * adSpendRate;
+            const calculatedAffiliate = finalPriceVnd * affiliateRate;
+            const calculatedPlatformVar = finalPriceVnd * totalPlatformVarRate;
+
+            document.getElementById('profitAmountDisplay').textContent = formatVND(calculatedProfit);
+            document.getElementById('adSpendDisplay').textContent = formatVND(calculatedAdSpend);
+            document.getElementById('platformCostDisplay').textContent = formatVND(calculatedPlatformVar + totalFixedFees);
+
+            // Update Breakdown visuals
+            updateBreakdownVisuals(finalPriceVnd, costVnd, calculatedProfit, calculatedAdSpend, calculatedAffiliate, calculatedPlatformVar, totalFixedFees);
+        }
+
+        function updateBreakdownVisuals(totalPrice, cost, profit, ads, affiliate, platVar, fixedFees) {
+            if (totalPrice === 0) {
+                // Render flat values if calculation failed
+                if (myChartInstance) myChartInstance.destroy();
+                myChartInstance = null;
+                return;
+            }
+
+            // Compute actual percentages of calculated final price
+            const pctCost = ((cost / totalPrice) * 100).toFixed(1);
+            const pctProfit = ((profit / totalPrice) * 100).toFixed(1);
+            const pctAds = ((ads / totalPrice) * 100).toFixed(1);
+            const pctAffiliate = ((affiliate / totalPrice) * 100).toFixed(1);
+            const pctPlatVar = ((platVar / totalPrice) * 100).toFixed(1);
+            const pctFixed = ((fixedFees / totalPrice) * 100).toFixed(1);
+
+            // Update text elements
+            document.getElementById('breakdownCost').textContent = `${formatVND(cost)} (${pctCost}%)`;
+            document.getElementById('breakdownProfit').textContent = `${formatVND(profit)} (${pctProfit}%)`;
+            document.getElementById('breakdownAds').textContent = `${formatVND(ads)} (${pctAds}%)`;
+            document.getElementById('breakdownAffiliate').textContent = `${formatVND(affiliate)} (${pctAffiliate}%)`;
+            document.getElementById('breakdownPlatform').textContent = `${formatVND(platVar)} (${pctPlatVar}%)`;
+            document.getElementById('breakdownFixed').textContent = `${formatVND(fixedFees)} (${pctFixed}%)`;
+
+            // Setup or update dynamic pie chart
+            const chartData = [
+                parseFloat(pctCost),
+                parseFloat(pctProfit),
+                parseFloat(pctAds),
+                parseFloat(pctAffiliate),
+                parseFloat(pctPlatVar),
+                parseFloat(pctFixed)
+            ];
+
+            const ctx = document.getElementById('breakdownChart').getContext('2d');
+            
+            // Generate labels dynamically from localization map
+            const l = TRANSLATIONS[currentLang];
+            const labels = [
+                l.chart_cost,
+                l.chart_profit,
+                l.chart_ads,
+                l.chart_aff,
+                l.chart_plat,
+                l.chart_fixed
+            ];
+
+            if (myChartInstance) {
+                myChartInstance.data.datasets[0].data = chartData;
+                myChartInstance.data.labels = labels;
+                myChartInstance.update();
+            } else {
+                myChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: chartData,
+                            backgroundColor: [
+                                '#10b981', // green
+                                '#3b82f6', // blue
+                                '#f59e0b', // amber
+                                '#f43f5e', // rose
+                                '#8b5cf6', // purple
+                                '#64748b'  // slate
+                            ],
+                            borderWidth: 1,
+                            borderColor: '#111827'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` ${context.label}: ${context.raw}%`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+        }
+
+        let tempScenarioData = {};
+
+        function saveCurrentScenario() {
+            // Gather data
+            const costVnd = parseFloat(document.getElementById('costVnd').value) || 0;
+            if (costVnd <= 0) {
+                showToast(TRANSLATIONS[currentLang].alert_input_cost, "error");
+                return;
+            }
+
+            const recommendedPriceText = document.getElementById('finalPriceVndDisplay').textContent;
+            if (recommendedPriceText === "ERR") {
+                showToast(TRANSLATIONS[currentLang].alert_invalid_params, "error");
+                return;
+            }
+
+            // Prepare temporary object for the modal dialog
+            const netProfitRate = parseFloat(document.getElementById('netProfitRate').value);
+            const roiRate = document.getElementById('includeAds').checked ? document.getElementById('roiRate').value : TRANSLATIONS[currentLang].non_ad_desc;
+            const affiliateRate = parseFloat(document.getElementById('affiliateRate').value);
+
+            // Get calculated recommended price
+            const cleanPriceVndText = recommendedPriceText.replace('₫', '').replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '');
+            const finalPriceVnd = parseFloat(cleanPriceVndText);
+            const calculatedProfit = finalPriceVnd * (netProfitRate / 100);
+
+            tempScenarioData = {
+                cost: costVnd,
+                price: finalPriceVnd,
+                profit: calculatedProfit,
+                roi: roiRate,
+                profitRate: netProfitRate,
+                affiliate: affiliateRate
+            };
+
+            // Show input prompt dialog
+            document.getElementById('saveDialog').classList.remove('hidden');
+            document.getElementById('scenarioNameInput').value = '';
+            document.getElementById('scenarioNameInput').focus();
+        }
+
+        function closeSaveDialog() {
+            document.getElementById('saveDialog').classList.add('hidden');
+        }
+
+        function confirmSaveScenario() {
+            const nameInput = document.getElementById('scenarioNameInput').value.trim();
+            const scenarioName = nameInput || `${TRANSLATIONS[currentLang].dialog_title} - ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+
+            const newScenario = {
+                id: Date.now(),
+                name: scenarioName,
+                ...tempScenarioData
+            };
+
+            savedScenarios.unshift(newScenario);
+            localStorage.setItem('tts_vietnam_scenarios', JSON.stringify(savedScenarios));
+
+            renderScenariosTable();
+            closeSaveDialog();
+            showToast(TRANSLATIONS[currentLang].alert_saved, "success");
+        }
+
+        function renderScenariosTable() {
+            const tbody = document.getElementById('scenariosTableBody');
+            const emptyRow = document.getElementById('emptyScenarioRow');
+
+            if (savedScenarios.length === 0) {
+                emptyRow.classList.remove('hidden');
+                // clear all dynamic rows
+                const rows = tbody.querySelectorAll('.dynamic-scenario-row');
+                rows.forEach(r => r.remove());
+                return;
+            }
+
+            emptyRow.classList.add('hidden');
+            // clear old dynamically loaded rows
+            const oldRows = tbody.querySelectorAll('.dynamic-scenario-row');
+            oldRows.forEach(r => r.remove());
+
+            savedScenarios.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-800/80 hover:bg-gray-800/30 transition dynamic-scenario-row';
+                tr.innerHTML = `
+                    <td class="py-3 font-semibold text-white max-w-[150px] truncate">${item.name}</td>
+                    <td class="py-3 text-right text-gray-400">${formatVND(item.cost)}</td>
+                    <td class="py-3 text-center">
+                        <span class="bg-gray-800 text-[10px] text-yellow-500 px-1.5 py-0.5 rounded">ROI: ${item.roi}</span>
+                        <span class="bg-gray-800 text-[10px] text-tiktok-cyan px-1.5 py-0.5 rounded">${TRANSLATIONS[currentLang].chart_profit}: ${item.profitRate}%</span>
+                    </td>
+                    <td class="py-3 text-right font-bold text-tiktok-cyan">${formatVND(item.price)}</td>
+                    <td class="py-3 text-right font-semibold text-green-400">${formatVND(item.profit)}</td>
+                    <td class="py-3 text-center">
+                        <button onclick="deleteScenario(${item.id})" class="text-xs text-gray-500 hover:text-red-400 p-1 transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteScenario(id) {
+            savedScenarios = savedScenarios.filter(s => s.id !== id);
+            localStorage.setItem('tts_vietnam_scenarios', JSON.stringify(savedScenarios));
+            renderScenariosTable();
+            showToast(TRANSLATIONS[currentLang].alert_deleted, "success");
+        }
+
+        function clearAllScenarios() {
+            showConfirm("confirm_title", "confirm_clear", () => {
+                savedScenarios = [];
+                localStorage.removeItem('tts_vietnam_scenarios');
+                renderScenariosTable();
+                showToast(TRANSLATIONS[currentLang].alert_cleared, "success");
+            });
+        }
+    </script>
+</body>
+</html>
+```
+eof
+
+### Dynamic Dual-Language Upgrades Made:
+1. **Chinese-Vietnamese Language Toggle:** Built a beautiful high-performance button switch group (`🇨🇳 中文` / `🇻🇳 Tiếng Việt`) in the top right corner.
+2. **Translation Engine:** Every label, slider tooltip, helper description text, chart category, warning message, button, and dynamic table headers are instantly hot-swapped without refreshing the page.
+3. **No `alert()` or `confirm()` Warnings:** Replaced the default browser methods with custom beautiful **Toast Notification** and **Modal Confirm/Dialogue** systems styled in dark mode TikTok themes.
+4. **Localization Compatibility:** Updated placeholders dynamically so that Vietnamese users get hints in Vietnamese (`Ví dụ: Tai nghe...`), while Chinese users receive appropriate Chinese hints.
